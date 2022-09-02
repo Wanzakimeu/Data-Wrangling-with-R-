@@ -1,0 +1,266 @@
+---
+
+title: "Data Wrangling with R Project""
+output: html_notebook
+---
+## Background Information
+MTN Telecom offers mobile and internet services to its customers. These services include phone, multiple lines, internet, online security, online backup, device protection, tech support, and streaming TV and movies. The management would like your assistance in understanding the subscribed customers. Your recommendations informed by your analysis will help them make decisions on effective customer retention programs.
+
+## Dataset Information
+The provided customer data set includes information about:
+
+- Customers who left within the last month – the column is called Churn.
+- The services that each customer has signed up for – phone, multiple lines, internet, online security, online backup, device protection, tech support, and streaming TV and movies.
+- Customer account information – how long they’ve been a customer, contract, payment method, paperless billing, monthly charges, and total charges.
+- The demographic information about customers – gender, age range, and if they have partners and dependents.
+
+Each row represents a customer, and each column contains the customer’s attributes described on the column Metadata.
+
+Dataset URL: https://bit.ly/2ZlpzjF
+
+## Problem Statement
+Read, explore, clean, and analyze the dataset.
+
+## Experimental Design
+
+- Install and Load Packages
+- Import Data
+- Data Understanding
+- Standardisation
+- Handle Irrelevant Data
+- Find and Deal with Duplicates
+- Find and Handle Missing data
+- Find and Deal with Outliers
+
+## Step 1. Install and Load Packages 
+In R, packages are a collection of functions that provide functinalities not given by the R core functionalities. We'll install tidyverse packages which will provide us with packages for performing data manipulation and analysis.
+
+
+Let's install tidyverse packages in Rstudio
+
+
+```{r}
+install.packages("tidyverse")
+
+library(tidyverse)
+```
+## Step 2. Import Data
+
+To work with a dataset, we need to import it and understand its structure. 
+
+```{r}
+
+customer_df <- read_csv("/cloud/project/telecom_customer - telecom_customer (1).csv")
+```
+## Step 3. Data Understanding
+
+```{r}
+
+# Preview the first 6 records of the dataset
+head(customer_df)
+
+```
+
+# Preview the last 5 records of the dataset
+
+```{r}
+tail(customer_df)
+```
+
+# Getting  `glimpse()` function
+
+```{r}
+glimpse(customer_df)
+```
+
+# Getting  datatypes using the `str()` function
+
+
+```{r}
+str(customer_df)
+```
+
+
+
+#Getting a random sample of the dataset
+
+```{r}
+sample_n(customer_df, 10)
+```
+
+
+#Checking the size of the dataset
+```{r}
+dim(customer_df)
+
+```
+## Step 4. Standardisation
+```{r}
+# Check the dataset column names
+names(customer_df)
+```
+
+```{r}
+# Strip the leading and trailing spaces using the `trimws()` function
+# For the arguments, we pass the column names vector and a vector with value "both" that defines that the leading and trailing spaces will be stripped. Note that this method transforms underscores to period
+names(customer_df) <- trimws(names(customer_df), which = c("both"))
+names(customer_df)
+```
+
+```{r}
+# Let's transform all column names to have lowercase characters using the `tolower()` function. 
+# We pass a vector containing the column names
+names(customer_df) <- tolower(names(customer_df))
+names(customer_df)
+```
+
+
+## Step 5. Handle Irrelevant Data
+```{r}
+
+install.packages("dplyr")
+
+library(dplyr)
+```
+
+
+We will drop columns that will not be useful in our analysis.
+
+```{r}
+# We drop the paymentmethod and paperlessbilling columns using the `select()` function 
+# We use `-` operator to define the column names we don't want.
+customer_df = select(customer_df, -c("paymentmethod", "paperlessbilling"))
+names(customer_df)
+```
+
+## Step 5. Handle Irrelevant Data
+
+We will drop columns that will not be useful in our analysis.
+```{r}
+# Let's drop the paymentmethod and paperlessbilling columns using the `select()` function 
+# We use `-` operator to define the column names we don't want.
+customer_df = select(customer_df, -c("paymentmethod", "paperlessbilling"))
+names(customer_df)
+```
+
+## Step 6. Find and Deal with Duplicates 
+
+Sometimes duplicates can mislead our analysis. Let's find and leave them out from our dataset.
+
+```{r}
+# Let's check the number of records using dim()
+dim(customer_df)
+```
+
+```{r}
+# Extract the duplicated records from the dataset
+# We use x[duplicated(x),], where x is the dataframe
+customer_df[duplicated(customer_df), ]
+```
+
+```{r}
+# Let's drop the duplicates by adding a logical negation `!` infront of the duplicated function
+customer_df <- customer_df[!duplicated(customer_df), ]
+dim(customer_df)
+```
+# Step 7. Missing data
+
+To avoid wrong data analysis conclusions, we will find and handle missing data.
+
+### 7.1 Find missing values
+
+```{r}
+# Find the total missing values in each column using the `colSums()` function
+colSums(is.na(customer_df))
+```
+Observation: all columns have missing data except the customerid column. The totalcharges column has the most missing values.
+
+### 7.2 Handle missing values
+
+There are various ways of handling missing data. These include but not limited to dropping all rows containing missing values AND imputing the missing values in a column with a number/mean/median/etc.
+
+```{r}
+# Let's drop all records containing missing values using the na.omit() function
+clean_df <- na.omit(customer_df)
+dim(clean_df)
+```
+## Step 8. Find and Deal with Outliers
+
+Outliers can have impact on the quality of analysis. Let's find and remove outliers from the dataset.
+
+
+
+```{r}
+library(dplyr)
+```
+
+```{r}
+# Let's convert categorical values to numerical values
+MakeNum <- function(x) as.numeric(as.factor(x))
+clean_df <- mutate(clean_df, across(c(2,4,5,7,8,9,10,11,12,13,14,15,16,19), MakeNum))
+clean_df
+```
+```{r}
+# We will exclude churn and customerid columns
+cols <- c(names(clean_df))
+cols <- cols[-19]
+cols <- cols[-1]
+cols
+# Use BoxPlot to detect outliers in the numeric/continuous data columns
+boxplot(clean_df[,cols])
+```
+Observation: our dataset has outliers
+
+```{r}
+#Let's create 2 helper functions, one to detect outliers and another to remove outliers
+
+detect_outlier <- function(x) {
+  # calculate first quantile
+  Q1 <- quantile(x, probs=.25)
+   
+  # calculate third quantile
+  Q3 <- quantile(x, probs=.75)
+   
+  # calculate interquartile range
+  IQR = Q3 - Q1
+   
+  # if an observation is greater than 1.5 times the third quantile or less than 1.5 times the first quantile, it returns true.
+  x > Q3 + (IQR*1.5) | x < Q1 - (IQR*1.5)
+}
+
+```
+
+```{r}
+remove_outliers <- function(dataframe, columns=names(dataframe)) {
+  # for loop to traverse in columns vector
+  for (col in columns) {
+    # remove observation if it satisfies outlier function
+    dataframe <- dataframe[!detect_outlier(dataframe[[col]]), ]
+  }
+   
+  # return dataframe
+  return(dataframe)
+}
+```
+
+```{r}
+print("Shape before removing outliers")
+print(dim(clean_df))
+cols <- names(clean_df)
+cols <- cols[-19]
+cols <- cols[-1]
+df_without_outliers <- remove_outliers(clean_df, cols)
+print("Shape after removing outliers")
+print(dim(df_without_outliers))
+```
+```{r}
+# Let's confirm that our new dataset doesn't have outliers
+cols <- c(names(df_without_outliers))
+cols <- cols[-19]
+cols <- cols[-1]
+cols
+# Use BoxPlot to detect outliers in the numeric/continuous data columns
+boxplot(df_without_outliers[,cols])
+
+```
+Observation: No Outliers
